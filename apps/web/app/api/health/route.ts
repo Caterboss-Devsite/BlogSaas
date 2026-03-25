@@ -1,27 +1,28 @@
 import { NextResponse } from "next/server";
 
-import { prisma } from "@blog-saas/db";
+import { webEnv } from "../../../lib/env";
+import { probeDatabaseConnection } from "../../../lib/merchant-console";
 
 export async function GET() {
-  try {
-    await prisma.$queryRawUnsafe("SELECT 1");
-
+  const result = await probeDatabaseConnection();
+  if (result.ok) {
     return NextResponse.json({
       ok: true,
       service: "blog-saas-web",
       database: "ok",
       timestamp: new Date().toISOString(),
     });
-  } catch (error) {
-    return NextResponse.json(
-      {
-        ok: false,
-        service: "blog-saas-web",
-        database: "error",
-        error: error instanceof Error ? error.message : "Unknown error",
-        timestamp: new Date().toISOString(),
-      },
-      { status: 503 },
-    );
   }
+
+  return NextResponse.json(
+    {
+      ok: webEnv.demoMode,
+      service: "blog-saas-web",
+      database: webEnv.demoMode ? "degraded" : "error",
+      error: result.error,
+      demoMode: webEnv.demoMode,
+      timestamp: new Date().toISOString(),
+    },
+    { status: webEnv.demoMode ? 200 : 503 },
+  );
 }

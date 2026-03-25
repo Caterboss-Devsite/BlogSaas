@@ -3,6 +3,8 @@ service_account.json
 __pycache__/
 *.pyc
 tmp-*.json
+tmp-*.log
+blogsaas-*.png
 node_modules/
 .next/
 dist/

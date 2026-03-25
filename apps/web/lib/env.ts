@@ -8,6 +8,15 @@ const requiredEnv = (name: string) => {
   return value;
 };
 
+const booleanEnv = (name: string, fallback = false) => {
+  const value = optionalEnv(name);
+  if (value === undefined) {
+    return fallback;
+  }
+
+  return ["1", "true", "yes", "on"].includes(value.toLowerCase());
+};
+
 export const webEnv = {
   appUrl: optionalEnv("SHOPIFY_APP_URL"),
   shopifyApiKey: optionalEnv("SHOPIFY_API_KEY"),
@@ -17,6 +26,7 @@ export const webEnv = {
     "read_content,write_content,read_products,read_themes",
   redisUrl: optionalEnv("REDIS_URL"),
   databaseUrl: optionalEnv("DATABASE_URL"),
+  demoMode: booleanEnv("BLOG_SAAS_DEMO_MODE", false),
 };
 
 export function getShopifyAppUrl() {

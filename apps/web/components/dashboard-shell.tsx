@@ -15,21 +15,56 @@ const links = [
 
 export function DashboardShell({ children }: PropsWithChildren) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "260px 1fr", minHeight: "100vh" }}>
-      <aside style={{ borderRight: "1px solid #e5e7eb", padding: "2rem 1.25rem" }}>
-        <h1 style={{ margin: 0, fontSize: "1.4rem" }}>Blog SaaS</h1>
-        <p style={{ color: "#4b5563", lineHeight: 1.5 }}>
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "280px 1fr",
+        minHeight: "100vh",
+        background: "linear-gradient(180deg, #f6f8fb 0%, #eef4ff 100%)",
+      }}
+    >
+      <aside
+        style={{
+          borderRight: "1px solid #e5e7eb",
+          padding: "2rem 1.25rem",
+          background: "#0f172a",
+          color: "#f8fafc",
+        }}
+      >
+        <p
+          style={{
+            margin: 0,
+            fontSize: ".78rem",
+            letterSpacing: ".08em",
+            textTransform: "uppercase",
+            color: "#93c5fd",
+          }}
+        >
+          Merchant Console
+        </p>
+        <h1 style={{ margin: ".4rem 0 0", fontSize: "1.5rem" }}>Blog SaaS</h1>
+        <p style={{ color: "#cbd5e1", lineHeight: 1.6 }}>
           Agency-first content operations for multi-tenant Shopify blog automation.
         </p>
-        <nav style={{ display: "grid", gap: ".75rem", marginTop: "1.5rem" }}>
+        <nav style={{ display: "grid", gap: ".35rem", marginTop: "1.75rem" }}>
           {links.map(([label, href]) => (
-            <Link key={href} href={href} style={{ color: "#111827", textDecoration: "none" }}>
+            <Link
+              key={href}
+              href={href}
+              style={{
+                color: "#e2e8f0",
+                textDecoration: "none",
+                padding: ".65rem .8rem",
+                borderRadius: 12,
+                background: "rgba(148, 163, 184, 0.08)",
+              }}
+            >
               {label}
             </Link>
           ))}
         </nav>
       </aside>
-      <main style={{ padding: "2rem" }}>{children}</main>
+      <main style={{ padding: "2rem 2.25rem" }}>{children}</main>
     </div>
   );
 }
