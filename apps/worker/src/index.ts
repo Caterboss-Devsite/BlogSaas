@@ -1,3 +1,5 @@
+import http from "node:http";
+
 import { Worker } from "bullmq";
 
 import { JobKindSchema, WorkerJobPayloadSchema } from "@blog-saas/domain";
@@ -5,7 +7,38 @@ import { JobKindSchema, WorkerJobPayloadSchema } from "@blog-saas/domain";
 import { dispatchJob } from "./jobs";
 import { createRedisConnection, queueName } from "./queue";
 
+function maybeStartHealthServer() {
+  const rawPort = process.env.PORT;
+  if (!rawPort) {
+    return null;
+  }
+
+  const port = Number.parseInt(rawPort, 10);
+  if (!Number.isFinite(port) || port <= 0) {
+    throw new Error(`Invalid PORT value for worker health server: ${rawPort}`);
+  }
+
+  const server = http.createServer((request, response) => {
+    const url = request.url ?? "/";
+    if (url === "/health" || url === "/") {
+      response.writeHead(200, { "Content-Type": "application/json" });
+      response.end(JSON.stringify({ ok: true, service: "blog-saas-worker" }));
+      return;
+    }
+
+    response.writeHead(404, { "Content-Type": "application/json" });
+    response.end(JSON.stringify({ ok: false, error: "Not found" }));
+  });
+
+  server.listen(port, "0.0.0.0", () => {
+    console.log(`Worker health server listening on ${port}`);
+  });
+
+  return server;
+}
+
 async function main() {
+  maybeStartHealthServer();
   const connection = createRedisConnection();
 
   const worker = new Worker(

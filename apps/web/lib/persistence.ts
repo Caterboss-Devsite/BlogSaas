@@ -1,8 +1,72 @@
 import { prisma } from "@blog-saas/db";
 import { assertValidLocalHours } from "@blog-saas/domain";
+import { getDefaultPromptTemplates } from "@blog-saas/prompt-library";
 
 function slugifyShopDomain(shopDomain: string) {
   return shopDomain.replace(".myshopify.com", "").replace(/[^a-zA-Z0-9-]+/g, "-").toLowerCase();
+}
+
+function slugifyPromptTemplateKey(name: string) {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+async function seedTenantPromptTemplates(tenantId: string) {
+  const promptTemplates = getDefaultPromptTemplates();
+
+  await Promise.all(
+    promptTemplates.map((template) =>
+      prisma.promptTemplate.upsert({
+        where: {
+          tenantId_key_version: {
+            tenantId,
+            key: slugifyPromptTemplateKey(template.name),
+            version: template.version,
+          },
+        },
+        update: {
+          usedIn: template.usedIn,
+          formatLabel: template.formatLabel,
+          systemPrompt: template.systemPrompt,
+          isDefault: true,
+        },
+        create: {
+          tenantId,
+          key: slugifyPromptTemplateKey(template.name),
+          version: template.version,
+          usedIn: template.usedIn,
+          formatLabel: template.formatLabel,
+          systemPrompt: template.systemPrompt,
+          isDefault: true,
+        },
+      }),
+    ),
+  );
+}
+
+async function ensureDefaultSubscription(tenantId: string) {
+  const existing = await prisma.subscription.findFirst({
+    where: { tenantId },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (existing) {
+    return existing;
+  }
+
+  return prisma.subscription.create({
+    data: {
+      tenantId,
+      planKey: "agency-launch",
+      status: "trialing",
+      monthlyDraftLimit: 90,
+      monthlyImageLimit: 90,
+      monthlyPublishLimit: 90,
+    },
+  });
 }
 
 export async function upsertInstalledShop(params: {
@@ -76,6 +140,9 @@ export async function upsertInstalledShop(params: {
       approvalRequired: true,
     },
   });
+
+  await ensureDefaultSubscription(tenant.id);
+  await seedTenantPromptTemplates(tenant.id);
 
   return tenant;
 }
