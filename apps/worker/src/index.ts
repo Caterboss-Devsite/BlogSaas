@@ -5,6 +5,7 @@ import { Worker } from "bullmq";
 import { JobKindSchema, WorkerJobPayloadSchema } from "@blog-saas/domain";
 
 import { dispatchJob } from "./jobs";
+import { markJobRunCompleted, markJobRunFailed, markJobRunRunning } from "./persistence";
 import { createRedisConnection, queueName } from "./queue";
 
 function maybeStartHealthServer() {
@@ -46,9 +47,17 @@ async function main() {
     async (job) => {
       const jobKind = JobKindSchema.parse(job.name);
       const payload = WorkerJobPayloadSchema.parse(job.data);
-      const result = await dispatchJob(jobKind, payload);
-      console.log(JSON.stringify({ jobKind, correlationId: payload.correlationId, result }, null, 2));
-      return result;
+      await markJobRunRunning(jobKind, payload);
+
+      try {
+        const result = await dispatchJob(jobKind, payload);
+        await markJobRunCompleted(payload, { result });
+        console.log(JSON.stringify({ jobKind, correlationId: payload.correlationId, result }, null, 2));
+        return result;
+      } catch (error) {
+        await markJobRunFailed(payload, error);
+        throw error;
+      }
     },
     {
       connection,

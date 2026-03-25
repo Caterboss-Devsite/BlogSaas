@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@blog-saas/db": "*",
     "@blog-saas/domain": "*",
     "@blog-saas/prompt-library": "*",
     "bullmq": "^5.50.0",

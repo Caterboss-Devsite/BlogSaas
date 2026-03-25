@@ -3,12 +3,14 @@ import type { JobKind, WorkerJobPayload } from "@blog-saas/domain";
 import {
   noopAirtableExporter,
   noopGoogleDocsExporter,
-  noopImageGenerationProvider,
-  noopLlmProvider,
   noopPageExtractionProvider,
   noopSearchProvider,
-  noopShopifyPublishingProvider,
 } from "../providers/noop";
+import {
+  openAiLlmProvider,
+  passthroughImageProvider,
+  shopifyPublishingProvider,
+} from "../providers/live";
 import { runAwaitApprovalJob } from "./await-approval";
 import { runDraftEditJob } from "./draft-edit";
 import { runDraftGenerateJob } from "./draft-generate";
@@ -26,17 +28,21 @@ export async function dispatchJob(jobKind: JobKind, payload: WorkerJobPayload) {
     case "topic_research":
       return runTopicResearchJob(payload, noopSearchProvider, noopPageExtractionProvider);
     case "draft_generate":
-      return runDraftGenerateJob(payload, noopLlmProvider);
+      return runDraftGenerateJob(payload, process.env.OPENAI_API_KEY ? openAiLlmProvider : undefined);
     case "draft_edit":
-      return runDraftEditJob(payload, noopLlmProvider);
+      return runDraftEditJob(payload, process.env.OPENAI_API_KEY ? openAiLlmProvider : undefined);
     case "faq_finalize":
       return runFaqFinalizeJob(payload);
     case "image_generate":
-      return runImageGenerateJob(payload, noopLlmProvider, noopImageGenerationProvider);
+      return runImageGenerateJob(
+        payload,
+        process.env.OPENAI_API_KEY ? openAiLlmProvider : undefined,
+        passthroughImageProvider,
+      );
     case "await_approval":
       return runAwaitApprovalJob(payload);
     case "publish_shopify":
-      return runPublishShopifyJob(payload, noopShopifyPublishingProvider);
+      return runPublishShopifyJob(payload, shopifyPublishingProvider);
     case "sync_metrics":
       return runSyncMetricsJob(payload, noopGoogleDocsExporter, noopAirtableExporter);
     default: {

@@ -1,6 +1,7 @@
 import { Queue } from "bullmq";
 import IORedis from "ioredis";
 
+import { prisma } from "@blog-saas/db";
 import {
   createCorrelationId,
   type JobKind,
@@ -36,6 +37,28 @@ export async function enqueueTenantJob(
     ...payload,
     correlationId: payload.correlationId ?? createCorrelationId(),
   });
+
+  if (process.env.DATABASE_URL) {
+    await prisma.jobRun.upsert({
+      where: { correlationId: parsedPayload.correlationId },
+      update: {
+        tenantId: parsedPayload.tenantId,
+        jobKind,
+        attempt: parsedPayload.attempt,
+        status: "queued",
+        payload: parsedPayload,
+        lastError: null,
+      },
+      create: {
+        tenantId: parsedPayload.tenantId,
+        jobKind,
+        correlationId: parsedPayload.correlationId,
+        attempt: parsedPayload.attempt,
+        status: "queued",
+        payload: parsedPayload,
+      },
+    });
+  }
 
   const activeQueue = getQueue();
   if (!activeQueue) {

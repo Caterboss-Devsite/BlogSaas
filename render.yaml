@@ -4,7 +4,7 @@ services:
     runtime: node
     repo: https://github.com/CaterbossIreland/BlogSaas
     plan: starter
-    buildCommand: npm ci && npm run db:generate && npm run build
+    buildCommand: npm ci --include=dev && npm run db:generate && npm run build
     startCommand: npm run db:push && npm run start:web
     healthCheckPath: /api/health
     envVars:
@@ -30,13 +30,17 @@ services:
         sync: false
       - key: GEMINI_IMAGE_MODEL
         value: gemini-3.1-flash-image-preview
+      - key: NPM_CONFIG_INCLUDE
+        value: dev
+      - key: NPM_CONFIG_PRODUCTION
+        value: "false"
 
   - type: worker
     name: blog-saas-worker
     runtime: node
     repo: https://github.com/CaterbossIreland/BlogSaas
     plan: starter
-    buildCommand: npm ci && npm run db:generate && npm run build
+    buildCommand: npm ci --include=dev && npm run db:generate && npm run build
     startCommand: npm run db:push && npm run start:worker
     envVars:
       - key: DATABASE_URL
@@ -53,10 +57,14 @@ services:
         sync: false
       - key: GEMINI_IMAGE_MODEL
         value: gemini-3.1-flash-image-preview
+      - key: NPM_CONFIG_INCLUDE
+        value: dev
+      - key: NPM_CONFIG_PRODUCTION
+        value: "false"
 
 databases:
   - name: blog-saas-db
-    plan: basic-256mb
+    plan: free
 
   - name: blog-saas-cache
     plan: starter
