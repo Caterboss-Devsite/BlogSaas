@@ -2,7 +2,7 @@ services:
   - type: web
     name: blog-saas-web
     runtime: node
-    repo: https://github.com/CaterbossIreland/BlogSaas
+    repo: https://github.com/Caterboss-Devsite/BlogSaas
     plan: starter
     buildCommand: npm ci --include=dev && npm run db:generate && npm run build
     startCommand: npm run db:push && npm run start:web
@@ -38,7 +38,7 @@ services:
   - type: worker
     name: blog-saas-worker
     runtime: node
-    repo: https://github.com/CaterbossIreland/BlogSaas
+    repo: https://github.com/Caterboss-Devsite/BlogSaas
     plan: starter
     buildCommand: npm ci --include=dev && npm run db:generate && npm run build
     startCommand: npm run db:push && npm run start:worker
@@ -68,4 +68,4 @@ databases:
 
   - name: blog-saas-cache
     plan: starter
-    maxmemoryPolicy: allkeys-lru
+    maxmemoryPolicy: noeviction
