@@ -1,9 +1,16 @@
 import { Panel } from "../../../components/panel";
+import { PublishScheduleForm } from "../../../components/publish-schedule-form";
 import { SummaryCard } from "../../../components/summary-card";
 import { getMerchantConsoleSnapshot } from "../../../lib/merchant-console";
+import { resolveTenantSlug, type PageSearchParams } from "../../../lib/tenant-query";
 
-export default async function PublishCalendarPage() {
-  const snapshot = await getMerchantConsoleSnapshot();
+type PublishCalendarPageProps = {
+  searchParams: PageSearchParams;
+};
+
+export default async function PublishCalendarPage({ searchParams }: PublishCalendarPageProps) {
+  const tenantSlug = await resolveTenantSlug(searchParams);
+  const snapshot = await getMerchantConsoleSnapshot(tenantSlug);
 
   return (
     <section style={{ display: "grid", gap: "1rem" }}>
@@ -21,22 +28,14 @@ export default async function PublishCalendarPage() {
         title="Publish Calendar"
         description="Publish windows are stored per tenant and used by queued publish jobs rather than hard-coded cron combinations."
       >
-        <div style={{ display: "flex", gap: ".75rem", flexWrap: "wrap" }}>
-          {snapshot.publishSchedule.nextWindows.map((windowLabel) => (
-            <span
-              key={windowLabel}
-              style={{
-                padding: ".65rem .9rem",
-                borderRadius: 999,
-                background: "#dbeafe",
-                color: "#1d4ed8",
-                fontWeight: 600,
-              }}
-            >
-              {windowLabel}
-            </span>
-          ))}
-        </div>
+        <PublishScheduleForm
+          tenantId={snapshot.tenant.id}
+          initialValues={{
+            timezone: snapshot.publishSchedule.timezone,
+            localHours: snapshot.publishSchedule.localHours,
+            approvalRequired: snapshot.contentPolicy.approvalRequired,
+          }}
+        />
       </Panel>
     </section>
   );

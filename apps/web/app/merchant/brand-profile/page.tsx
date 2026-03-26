@@ -1,8 +1,15 @@
+import { BrandProfileForm } from "../../../components/brand-profile-form";
 import { Panel } from "../../../components/panel";
 import { getMerchantConsoleSnapshot } from "../../../lib/merchant-console";
+import { resolveTenantSlug, type PageSearchParams } from "../../../lib/tenant-query";
 
-export default async function BrandProfilePage() {
-  const snapshot = await getMerchantConsoleSnapshot();
+type BrandProfilePageProps = {
+  searchParams: PageSearchParams;
+};
+
+export default async function BrandProfilePage({ searchParams }: BrandProfilePageProps) {
+  const tenantSlug = await resolveTenantSlug(searchParams);
+  const snapshot = await getMerchantConsoleSnapshot(tenantSlug);
 
   return (
     <section style={{ display: "grid", gap: "1rem" }}>
@@ -33,25 +40,19 @@ export default async function BrandProfilePage() {
       </Panel>
 
       <Panel title="Voice Summary">
-        <p style={{ margin: 0, lineHeight: 1.7, color: "#374151" }}>{snapshot.brandProfile.voiceSummary}</p>
+        <BrandProfileForm
+          tenantId={snapshot.tenant.id}
+          initialValues={{
+            brandName: snapshot.brandProfile.brandName,
+            primaryDomain: snapshot.shop.primaryDomain,
+            marketCountryCode: snapshot.brandProfile.marketCountryCode,
+            preferredSpelling: snapshot.brandProfile.preferredSpelling,
+            voiceSummary: snapshot.brandProfile.voiceSummary,
+            internalLinkRules: snapshot.brandProfile.internalLinkRules,
+            complianceNotes: snapshot.brandProfile.complianceNotes,
+          }}
+        />
       </Panel>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "1rem" }}>
-        <Panel title="Internal Linking Rules">
-          <ul style={{ margin: 0, paddingLeft: "1.1rem", display: "grid", gap: ".5rem" }}>
-            {snapshot.brandProfile.internalLinkRules.map((rule) => (
-              <li key={rule}>{rule}</li>
-            ))}
-          </ul>
-        </Panel>
-        <Panel title="Compliance Notes">
-          <ul style={{ margin: 0, paddingLeft: "1.1rem", display: "grid", gap: ".5rem" }}>
-            {snapshot.brandProfile.complianceNotes.map((note) => (
-              <li key={note}>{note}</li>
-            ))}
-          </ul>
-        </Panel>
-      </div>
     </section>
   );
 }

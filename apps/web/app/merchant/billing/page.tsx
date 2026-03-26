@@ -1,9 +1,15 @@
 import { Panel } from "../../../components/panel";
 import { SummaryCard } from "../../../components/summary-card";
 import { getMerchantConsoleSnapshot } from "../../../lib/merchant-console";
+import { resolveTenantSlug, type PageSearchParams } from "../../../lib/tenant-query";
 
-export default async function BillingPage() {
-  const snapshot = await getMerchantConsoleSnapshot();
+type BillingPageProps = {
+  searchParams: PageSearchParams;
+};
+
+export default async function BillingPage({ searchParams }: BillingPageProps) {
+  const tenantSlug = await resolveTenantSlug(searchParams);
+  const snapshot = await getMerchantConsoleSnapshot(tenantSlug);
 
   return (
     <section style={{ display: "grid", gap: "1rem" }}>

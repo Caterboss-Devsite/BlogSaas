@@ -1,9 +1,16 @@
+import { ContentPolicyForm } from "../../../components/content-policy-form";
 import { Panel } from "../../../components/panel";
 import { SummaryCard } from "../../../components/summary-card";
 import { getMerchantConsoleSnapshot } from "../../../lib/merchant-console";
+import { resolveTenantSlug, type PageSearchParams } from "../../../lib/tenant-query";
 
-export default async function ContentSettingsPage() {
-  const snapshot = await getMerchantConsoleSnapshot();
+type ContentSettingsPageProps = {
+  searchParams: PageSearchParams;
+};
+
+export default async function ContentSettingsPage({ searchParams }: ContentSettingsPageProps) {
+  const tenantSlug = await resolveTenantSlug(searchParams);
+  const snapshot = await getMerchantConsoleSnapshot(tenantSlug);
 
   return (
     <section style={{ display: "grid", gap: "1rem" }}>
@@ -17,28 +24,15 @@ export default async function ContentSettingsPage() {
         title="Content Settings"
         description="Prompt versions, cadence, and provider choices are configured per tenant instead of being scattered across Airtable and n8n."
       >
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "1rem" }}>
-          <div>
-            <strong>LLM provider</strong>
-            <p style={{ margin: ".35rem 0 0", color: "#4b5563" }}>{snapshot.contentPolicy.llmProvider}</p>
-          </div>
-          <div>
-            <strong>Image provider</strong>
-            <p style={{ margin: ".35rem 0 0", color: "#4b5563" }}>{snapshot.contentPolicy.imageProvider}</p>
-          </div>
-          <div>
-            <strong>Publish cadence</strong>
-            <p style={{ margin: ".35rem 0 0", color: "#4b5563" }}>
-              {snapshot.contentPolicy.publishCadenceHours.join(", ")} Dublin time
-            </p>
-          </div>
-          <div>
-            <strong>Approval required</strong>
-            <p style={{ margin: ".35rem 0 0", color: "#4b5563" }}>
-              {snapshot.contentPolicy.approvalRequired ? "Yes" : "No"}
-            </p>
-          </div>
-        </div>
+        <ContentPolicyForm
+          tenantId={snapshot.tenant.id}
+          initialValues={{
+            searchLocale: snapshot.contentPolicy.searchLocale,
+            llmProvider: snapshot.contentPolicy.llmProvider,
+            imageProvider: snapshot.contentPolicy.imageProvider,
+            maxDraftsPerDay: snapshot.contentPolicy.maxDraftsPerDay,
+          }}
+        />
       </Panel>
     </section>
   );

@@ -190,6 +190,23 @@ export const UpdateScheduleRequestSchema = TenantScopedSchema.extend({
   approvalRequired: z.boolean().default(true),
 });
 
+export const UpdateBrandProfileRequestSchema = TenantScopedSchema.extend({
+  brandName: z.string().min(1),
+  primaryDomain: z.string().min(1),
+  marketCountryCode: z.string().length(2).default("IE"),
+  preferredSpelling: z.string().min(1).default("en-IE"),
+  voiceSummary: z.string().min(1),
+  internalLinkRules: z.array(z.string()).default([]),
+  complianceNotes: z.array(z.string()).default([]),
+});
+
+export const UpdateContentPolicyRequestSchema = TenantScopedSchema.extend({
+  searchLocale: z.string().min(1),
+  llmProvider: z.string().min(1),
+  imageProvider: z.string().min(1),
+  maxDraftsPerDay: z.number().int().positive(),
+});
+
 export const WorkerJobPayloadSchema = z.object({
   tenantId: z.string().uuid(),
   shopId: z.string().uuid().optional(),

@@ -102,6 +102,18 @@ export type MerchantConsoleSnapshot = {
   usageRows: MerchantUsageRow[];
 };
 
+export type ConnectedTenantSummary = {
+  id: string;
+  name: string;
+  slug: string;
+  status: string;
+  shopDomain: string;
+  installedAt: string;
+  monthlyPlan: string;
+  draftCount: number;
+  topicCount: number;
+};
+
 function createDemoSnapshot(databaseError?: string): MerchantConsoleSnapshot {
   return {
     source: "demo",
@@ -332,13 +344,20 @@ export async function probeDatabaseConnection() {
   }
 }
 
-export async function getMerchantConsoleSnapshot(): Promise<MerchantConsoleSnapshot> {
+export async function getMerchantConsoleSnapshot(tenantSlug?: string): Promise<MerchantConsoleSnapshot> {
   const missingTenantMessage = "No installed tenant was found yet.";
 
   try {
     const shopConnection = await prisma.shopConnection.findFirst({
       where: {
         uninstalledAt: null,
+        ...(tenantSlug
+          ? {
+              tenant: {
+                slug: tenantSlug,
+              },
+            }
+          : {}),
       },
       orderBy: {
         installedAt: "desc",
@@ -532,6 +551,58 @@ export async function getMerchantConsoleSnapshot(): Promise<MerchantConsoleSnaps
 
     if (webEnv.demoMode || message === missingTenantMessage) {
       return createDemoSnapshot(message);
+    }
+
+    throw error;
+  }
+}
+
+export async function getConnectedTenantSummaries(): Promise<ConnectedTenantSummary[]> {
+  try {
+    const tenants = await prisma.tenant.findMany({
+      orderBy: {
+        updatedAt: "desc",
+      },
+      include: {
+        shopConnections: {
+          where: {
+            uninstalledAt: null,
+          },
+          orderBy: {
+            installedAt: "desc",
+          },
+        },
+        subscriptions: {
+          orderBy: {
+            createdAt: "desc",
+          },
+          take: 1,
+        },
+        _count: {
+          select: {
+            drafts: true,
+            topics: true,
+          },
+        },
+      },
+    });
+
+    return tenants
+      .filter((tenant) => tenant.shopConnections.length > 0)
+      .map((tenant) => ({
+        id: tenant.id,
+        name: tenant.name,
+        slug: tenant.slug,
+        status: tenant.status,
+        shopDomain: tenant.shopConnections[0]?.shopDomain ?? "",
+        installedAt: formatRelativeDate(tenant.shopConnections[0]?.installedAt ?? tenant.createdAt),
+        monthlyPlan: tenant.subscriptions[0]?.planKey ?? "agency-launch",
+        draftCount: tenant._count.drafts,
+        topicCount: tenant._count.topics,
+      }));
+  } catch (error) {
+    if (webEnv.demoMode) {
+      return [];
     }
 
     throw error;

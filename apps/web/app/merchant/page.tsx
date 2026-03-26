@@ -2,9 +2,15 @@ import { Panel } from "../../components/panel";
 import { StatusBadge } from "../../components/status-badge";
 import { SummaryCard } from "../../components/summary-card";
 import { getMerchantConsoleSnapshot } from "../../lib/merchant-console";
+import { resolveTenantSlug, type PageSearchParams } from "../../lib/tenant-query";
 
-export default async function MerchantHomePage() {
-  const snapshot = await getMerchantConsoleSnapshot();
+type MerchantHomePageProps = {
+  searchParams: PageSearchParams;
+};
+
+export default async function MerchantHomePage({ searchParams }: MerchantHomePageProps) {
+  const tenantSlug = await resolveTenantSlug(searchParams);
+  const snapshot = await getMerchantConsoleSnapshot(tenantSlug);
 
   return (
     <section style={{ display: "grid", gap: "1.25rem" }}>

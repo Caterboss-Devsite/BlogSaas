@@ -23,10 +23,6 @@ export async function GET(request: NextRequest) {
     scope: tokenResponse.scope,
   });
 
-  return NextResponse.json({
-    ok: true,
-    tenantId: tenant.id,
-    tenantSlug: tenant.slug,
-    shop,
-  });
+  const redirectUrl = new URL(`/onboarding?tenant=${tenant.slug}`, request.url);
+  return NextResponse.redirect(redirectUrl);
 }

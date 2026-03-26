@@ -1,7 +1,11 @@
+"use client";
+
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import type { PropsWithChildren } from "react";
 
 const links = [
+  ["Overview", "/merchant"],
   ["Brand Profile", "/merchant/brand-profile"],
   ["Content Settings", "/merchant/content-settings"],
   ["Topic Backlog", "/merchant/topic-backlog"],
@@ -11,9 +15,23 @@ const links = [
   ["Usage", "/merchant/usage"],
   ["Billing", "/merchant/billing"],
   ["Google Docs", "/merchant/google-docs"],
+  ["Admin", "/admin"],
+  ["Install Store", "/install"],
 ] as const;
 
 export function DashboardShell({ children }: PropsWithChildren) {
+  const searchParams = useSearchParams();
+  const tenant = searchParams.get("tenant");
+
+  const withTenant = (href: string) => {
+    if (!tenant || !href.startsWith("/merchant")) {
+      return href;
+    }
+
+    const separator = href.includes("?") ? "&" : "?";
+    return `${href}${separator}tenant=${encodeURIComponent(tenant)}`;
+  };
+
   return (
     <div
       style={{
@@ -49,8 +67,8 @@ export function DashboardShell({ children }: PropsWithChildren) {
         <nav style={{ display: "grid", gap: ".35rem", marginTop: "1.75rem" }}>
           {links.map(([label, href]) => (
             <Link
-              key={href}
-              href={href}
+              key={`${href}-${tenant ?? "default"}`}
+              href={withTenant(href)}
               style={{
                 color: "#e2e8f0",
                 textDecoration: "none",

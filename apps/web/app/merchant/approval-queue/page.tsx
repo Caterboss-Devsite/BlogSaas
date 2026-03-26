@@ -2,9 +2,15 @@ import { DataTable } from "../../../components/data-table";
 import { Panel } from "../../../components/panel";
 import { StatusBadge } from "../../../components/status-badge";
 import { getMerchantConsoleSnapshot } from "../../../lib/merchant-console";
+import { resolveTenantSlug, type PageSearchParams } from "../../../lib/tenant-query";
 
-export default async function ApprovalQueuePage() {
-  const snapshot = await getMerchantConsoleSnapshot();
+type ApprovalQueuePageProps = {
+  searchParams: PageSearchParams;
+};
+
+export default async function ApprovalQueuePage({ searchParams }: ApprovalQueuePageProps) {
+  const tenantSlug = await resolveTenantSlug(searchParams);
+  const snapshot = await getMerchantConsoleSnapshot(tenantSlug);
 
   return (
     <Panel

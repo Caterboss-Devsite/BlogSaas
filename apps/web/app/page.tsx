@@ -31,14 +31,19 @@ export default function HomePage() {
           <Link href="/merchant">Open merchant console</Link>
         </article>
         <article style={{ background: "#fff", padding: "1.25rem", borderRadius: 16 }}>
+          <h2 style={{ marginTop: 0 }}>Install flow</h2>
+          <p>Connect a new Shopify store in a few clicks, then finish onboarding from the app.</p>
+          <Link href="/install">Connect a new store</Link>
+        </article>
+        <article style={{ background: "#fff", padding: "1.25rem", borderRadius: 16 }}>
           <h2 style={{ marginTop: 0 }}>API contracts</h2>
           <p>Tenant-scoped routes enqueue BullMQ jobs and persist review decisions.</p>
           <p style={{ marginBottom: 0 }}>Prompt templates seeded: {prompts.length}</p>
         </article>
         <article style={{ background: "#fff", padding: "1.25rem", borderRadius: 16 }}>
-          <h2 style={{ marginTop: 0 }}>Install flow</h2>
-          <p>Shopify OAuth and webhook endpoints are scaffolded for limited-visibility public distribution.</p>
-          <Link href="/auth/shopify/start?shop=example.myshopify.com">Try auth start</Link>
+          <h2 style={{ marginTop: 0 }}>Agency admin</h2>
+          <p>View connected stores and jump into each merchant console or onboarding flow.</p>
+          <Link href="/admin">Open agency admin</Link>
         </article>
       </section>
     </main>

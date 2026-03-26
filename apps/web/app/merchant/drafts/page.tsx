@@ -2,6 +2,7 @@ import { DataTable, ExternalTextLink } from "../../../components/data-table";
 import { Panel } from "../../../components/panel";
 import { StatusBadge } from "../../../components/status-badge";
 import { getMerchantConsoleSnapshot } from "../../../lib/merchant-console";
+import { resolveTenantSlug, type PageSearchParams } from "../../../lib/tenant-query";
 
 function getDraftTone(status: string) {
   if (status === "published") {
@@ -16,8 +17,13 @@ function getDraftTone(status: string) {
   return "neutral" as const;
 }
 
-export default async function DraftsPage() {
-  const snapshot = await getMerchantConsoleSnapshot();
+type DraftsPageProps = {
+  searchParams: PageSearchParams;
+};
+
+export default async function DraftsPage({ searchParams }: DraftsPageProps) {
+  const tenantSlug = await resolveTenantSlug(searchParams);
+  const snapshot = await getMerchantConsoleSnapshot(tenantSlug);
 
   return (
     <Panel

@@ -2,9 +2,15 @@ import { DataTable } from "../../../components/data-table";
 import { Panel } from "../../../components/panel";
 import { SummaryCard } from "../../../components/summary-card";
 import { getMerchantConsoleSnapshot } from "../../../lib/merchant-console";
+import { resolveTenantSlug, type PageSearchParams } from "../../../lib/tenant-query";
 
-export default async function UsagePage() {
-  const snapshot = await getMerchantConsoleSnapshot();
+type UsagePageProps = {
+  searchParams: PageSearchParams;
+};
+
+export default async function UsagePage({ searchParams }: UsagePageProps) {
+  const tenantSlug = await resolveTenantSlug(searchParams);
+  const snapshot = await getMerchantConsoleSnapshot(tenantSlug);
 
   return (
     <section style={{ display: "grid", gap: "1rem" }}>

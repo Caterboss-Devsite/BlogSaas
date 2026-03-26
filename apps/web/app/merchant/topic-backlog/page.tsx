@@ -2,6 +2,7 @@ import { DataTable } from "../../../components/data-table";
 import { Panel } from "../../../components/panel";
 import { StatusBadge } from "../../../components/status-badge";
 import { getMerchantConsoleSnapshot } from "../../../lib/merchant-console";
+import { resolveTenantSlug, type PageSearchParams } from "../../../lib/tenant-query";
 
 function getTopicTone(status: string) {
   if (status === "approved") {
@@ -13,8 +14,13 @@ function getTopicTone(status: string) {
   return "neutral" as const;
 }
 
-export default async function TopicBacklogPage() {
-  const snapshot = await getMerchantConsoleSnapshot();
+type TopicBacklogPageProps = {
+  searchParams: PageSearchParams;
+};
+
+export default async function TopicBacklogPage({ searchParams }: TopicBacklogPageProps) {
+  const tenantSlug = await resolveTenantSlug(searchParams);
+  const snapshot = await getMerchantConsoleSnapshot(tenantSlug);
 
   return (
     <Panel

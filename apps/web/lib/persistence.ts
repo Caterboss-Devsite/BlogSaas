@@ -147,6 +147,50 @@ export async function upsertInstalledShop(params: {
   return tenant;
 }
 
+export async function listInstalledShops() {
+  const tenants = await prisma.tenant.findMany({
+    orderBy: {
+      updatedAt: "desc",
+    },
+    include: {
+      shopConnections: {
+        where: {
+          uninstalledAt: null,
+        },
+        orderBy: {
+          installedAt: "desc",
+        },
+      },
+      subscriptions: {
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: 1,
+      },
+      _count: {
+        select: {
+          drafts: true,
+          topics: true,
+        },
+      },
+    },
+  });
+
+  return tenants
+    .filter((tenant) => tenant.shopConnections.length > 0)
+    .map((tenant) => ({
+      id: tenant.id,
+      name: tenant.name,
+      slug: tenant.slug,
+      status: tenant.status,
+      shopDomain: tenant.shopConnections[0]?.shopDomain ?? "",
+      installedAt: tenant.shopConnections[0]?.installedAt ?? tenant.createdAt,
+      monthlyPlan: tenant.subscriptions[0]?.planKey ?? "agency-launch",
+      draftCount: tenant._count.drafts,
+      topicCount: tenant._count.topics,
+    }));
+}
+
 export async function markShopUninstalled(shopDomain: string) {
   return prisma.shopConnection.update({
     where: { shopDomain },
@@ -174,6 +218,56 @@ export async function updateTenantSchedule(tenantId: string, localHours: number[
       timezone: "Europe/Dublin",
       localHours: normalizedHours,
       approvalRequired,
+    },
+  });
+}
+
+export async function updateTenantBrandProfile(params: {
+  tenantId: string;
+  brandName: string;
+  primaryDomain: string;
+  marketCountryCode: string;
+  preferredSpelling: string;
+  voiceSummary: string;
+  internalLinkRules: string[];
+  complianceNotes: string[];
+}) {
+  await prisma.tenant.update({
+    where: { id: params.tenantId },
+    data: {
+      name: params.brandName,
+      countryCode: params.marketCountryCode,
+    },
+  });
+
+  return prisma.brandProfile.update({
+    where: { tenantId: params.tenantId },
+    data: {
+      brandName: params.brandName,
+      primaryDomain: params.primaryDomain,
+      marketCountryCode: params.marketCountryCode,
+      preferredSpelling: params.preferredSpelling,
+      voiceSummary: params.voiceSummary,
+      internalLinkRules: params.internalLinkRules,
+      complianceNotes: params.complianceNotes,
+    },
+  });
+}
+
+export async function updateTenantContentPolicy(params: {
+  tenantId: string;
+  searchLocale: string;
+  llmProvider: string;
+  imageProvider: string;
+  maxDraftsPerDay: number;
+}) {
+  return prisma.contentPolicy.update({
+    where: { tenantId: params.tenantId },
+    data: {
+      searchLocale: params.searchLocale,
+      llmProvider: params.llmProvider,
+      imageProvider: params.imageProvider,
+      maxDraftsPerDay: params.maxDraftsPerDay,
     },
   });
 }
