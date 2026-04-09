@@ -7,6 +7,7 @@ import { JobKindSchema, WorkerJobPayloadSchema } from "@blog-saas/domain";
 import { dispatchJob } from "./jobs";
 import { markJobRunCompleted, markJobRunFailed, markJobRunRunning } from "./persistence";
 import { createRedisConnection, queueName } from "./queue";
+import { createWorkerRecoveryMonitor } from "./recovery";
 
 function isTruthy(value: string | undefined) {
   if (!value) {
@@ -23,7 +24,23 @@ function stayAliveInDegradedMode(reason: string) {
   }, 5 * 60 * 1000);
 }
 
-function maybeStartHealthServer() {
+function getRestartGracePeriodMs() {
+  const rawGracePeriod = process.env.BLOG_SAAS_WORKER_RESTART_GRACE_MS;
+  if (!rawGracePeriod) {
+    return 2 * 60 * 1000;
+  }
+
+  const parsedGracePeriod = Number.parseInt(rawGracePeriod, 10);
+  if (!Number.isFinite(parsedGracePeriod) || parsedGracePeriod < 1_000) {
+    throw new Error(
+      `Invalid BLOG_SAAS_WORKER_RESTART_GRACE_MS value for worker runtime: ${rawGracePeriod}`,
+    );
+  }
+
+  return parsedGracePeriod;
+}
+
+function maybeStartHealthServer(getHealthStatus: () => { ok: boolean; reason: string | null }) {
   const rawPort = process.env.PORT;
   if (!rawPort) {
     return null;
@@ -37,8 +54,9 @@ function maybeStartHealthServer() {
   const server = http.createServer((request, response) => {
     const url = request.url ?? "/";
     if (url === "/health" || url === "/") {
-      response.writeHead(200, { "Content-Type": "application/json" });
-      response.end(JSON.stringify({ ok: true, service: "blog-saas-worker" }));
+      const healthStatus = getHealthStatus();
+      response.writeHead(healthStatus.ok ? 200 : 503, { "Content-Type": "application/json" });
+      response.end(JSON.stringify({ ...healthStatus, service: "blog-saas-worker" }));
       return;
     }
 
@@ -54,16 +72,70 @@ function maybeStartHealthServer() {
 }
 
 async function main() {
-  maybeStartHealthServer();
-
   if (isTruthy(process.env.BLOG_SAAS_WORKER_DEGRADED_MODE)) {
+    maybeStartHealthServer(() => ({ ok: true, reason: "degraded-mode" }));
     stayAliveInDegradedMode("BLOG_SAAS_WORKER_DEGRADED_MODE is set");
     return;
   }
 
   const connection = createRedisConnection();
+  const restartGracePeriodMs = getRestartGracePeriodMs();
+  let worker: Worker | null = null;
+  const recoveryMonitor = createWorkerRecoveryMonitor({
+    gracePeriodMs: restartGracePeriodMs,
+    onRestartRequested(reason) {
+      console.error(
+        `Worker did not recover within ${restartGracePeriodMs}ms after: ${reason}. Exiting so Render can restart it.`,
+      );
+      const closeWorker = worker
+        ? worker.close().catch((error) => {
+            console.error("Failed to close worker cleanly during recovery exit:", error);
+          })
+        : Promise.resolve();
 
-  const worker = new Worker(
+      void closeWorker
+        .finally(() => {
+          recoveryMonitor.stop();
+          connection.disconnect();
+          process.exit(1);
+        });
+    },
+  });
+
+  maybeStartHealthServer(() => {
+    const snapshot = recoveryMonitor.snapshot();
+    return {
+      ok: snapshot.healthy,
+      reason: snapshot.pendingRestartReason,
+    };
+  });
+
+  connection.on("ready", () => {
+    recoveryMonitor.markHealthy();
+    console.log("Redis connection ready");
+  });
+
+  connection.on("error", (error) => {
+    recoveryMonitor.markUnhealthy("redis-error");
+    console.error("Redis connection error:", error);
+  });
+
+  connection.on("close", () => {
+    recoveryMonitor.markUnhealthy("redis-connection-closed");
+    console.warn("Redis connection closed");
+  });
+
+  connection.on("end", () => {
+    recoveryMonitor.markUnhealthy("redis-connection-ended");
+    console.warn("Redis connection ended");
+  });
+
+  connection.on("reconnecting", (delay: number) => {
+    recoveryMonitor.markUnhealthy("redis-reconnecting");
+    console.warn(`Redis reconnecting in ${delay}ms`);
+  });
+
+  worker = new Worker(
     queueName,
     async (job) => {
       const jobKind = JobKindSchema.parse(job.name);
@@ -92,6 +164,11 @@ async function main() {
 
   worker.on("failed", (job, error) => {
     console.error(`Failed ${job?.name ?? "unknown"} ${job?.id ?? "unknown"}:`, error);
+  });
+
+  worker.on("error", (error) => {
+    recoveryMonitor.markUnhealthy("worker-error");
+    console.error("Worker queue error:", error);
   });
 
   console.log(`Worker listening on queue ${queueName}`);
